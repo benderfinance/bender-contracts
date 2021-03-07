@@ -7,12 +7,12 @@ import "./libs/IBEP20.sol";
 import "./libs/SafeBEP20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./EggToken.sol";
+import "./BenderToken.sol";
 
-// MasterChef is the master of Egg. He can make Egg and he is a fair guy.
+// MasterChef is the master of Bender. He can make Bender and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once EGG is sufficiently
+// will be transferred to a governance smart contract once BENDER is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -25,13 +25,13 @@ contract MasterChef is Ownable {
         uint256 amount;         // How many LP tokens the user has provided.
         uint256 rewardDebt;     // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of EGGs
+        // We do some fancy math here. Basically, any point in time, the amount of BENDERs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accEggPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accBenderPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accEggPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accBenderPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -40,19 +40,19 @@ contract MasterChef is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IBEP20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. EGGs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that EGGs distribution occurs.
-        uint256 accEggPerShare;   // Accumulated EGGs per share, times 1e12. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. BENDERs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that BENDER distribution occurs.
+        uint256 accBenderPerShare;   // Accumulated BENDER per share, times 1e12. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
-    // The EGG TOKEN!
-    EggToken public egg;
+    // The BENDER TOKEN!
+    BenderToken public bender;
     // Dev address.
     address public devaddr;
-    // EGG tokens created per block.
-    uint256 public eggPerBlock;
-    // Bonus muliplier for early egg makers.
+    // BENDER tokens created per block.
+    uint256 public benderPerBlock;
+    // Bonus muliplier for early bender makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Deposit Fee address
     address public feeAddress;
@@ -63,7 +63,7 @@ contract MasterChef is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when EGG mining starts.
+    // The block number when BENDER mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -71,16 +71,16 @@ contract MasterChef is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        EggToken _egg,
+        BenderToken _bender,
         address _devaddr,
         address _feeAddress,
-        uint256 _eggPerBlock,
+        uint256 _benderPerBlock,
         uint256 _startBlock
     ) public {
-        egg = _egg;
+        bender = _bender;
         devaddr = _devaddr;
         feeAddress = _feeAddress;
-        eggPerBlock = _eggPerBlock;
+        benderPerBlock = _benderPerBlock;
         startBlock = _startBlock;
     }
 
@@ -101,12 +101,12 @@ contract MasterChef is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accEggPerShare: 0,
+            accBenderPerShare: 0,
             depositFeeBP: _depositFeeBP
         }));
     }
 
-    // Update the given pool's EGG allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's BENDER allocation point and deposit fee. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner {
         require(_depositFeeBP <= 10000, "set: invalid deposit fee basis points");
         if (_withUpdate) {
@@ -122,22 +122,22 @@ contract MasterChef is Ownable {
         return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
-    // View function to see pending EGGs on frontend.
-    function pendingEgg(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending BENDERs on frontend.
+    function pendingBender(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accEggPerShare = pool.accEggPerShare;
+        uint256 accBenderPerShare = pool.accBenderPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 eggReward = multiplier.mul(eggPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accEggPerShare = accEggPerShare.add(eggReward.mul(1e12).div(lpSupply));
+            uint256 benderReward = multiplier.mul(benderPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accBenderPerShare = accBenderPerShare.add(benderReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accEggPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accBenderPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
-    function massUpdatePools() public {
+    function massUpdatePools() public onlyOwner{
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
             updatePool(pid);
@@ -156,22 +156,22 @@ contract MasterChef is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 eggReward = multiplier.mul(eggPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        egg.mint(devaddr, eggReward.div(10));
-        egg.mint(address(this), eggReward);
-        pool.accEggPerShare = pool.accEggPerShare.add(eggReward.mul(1e12).div(lpSupply));
+        uint256 benderReward = multiplier.mul(benderPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        bender.mint(devaddr, benderReward.div(10));
+        bender.mint(address(this), benderReward);
+        pool.accBenderPerShare = pool.accBenderPerShare.add(benderReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for EGG allocation.
+    // Deposit LP tokens to MasterChef for BENDER allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accEggPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accBenderPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safeEggTransfer(msg.sender, pending);
+                safeBenderTransfer(msg.sender, pending);
             }
         }
         if(_amount > 0) {
@@ -184,7 +184,7 @@ contract MasterChef is Ownable {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accEggPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accBenderPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -194,15 +194,15 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accEggPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accBenderPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safeEggTransfer(msg.sender, pending);
+            safeBenderTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accEggPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accBenderPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -217,13 +217,13 @@ contract MasterChef is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe egg transfer function, just in case if rounding error causes pool to not have enough EGGs.
-    function safeEggTransfer(address _to, uint256 _amount) internal {
-        uint256 eggBal = egg.balanceOf(address(this));
-        if (_amount > eggBal) {
-            egg.transfer(_to, eggBal);
+    // Safe bender transfer function, just in case if rounding error causes pool to not have enough BENDERs.
+    function safeBenderTransfer(address _to, uint256 _amount) internal {
+        uint256 benderBal = bender.balanceOf(address(this));
+        if (_amount > benderBal) {
+            bender.transfer(_to, benderBal);
         } else {
-            egg.transfer(_to, _amount);
+            bender.transfer(_to, _amount);
         }
     }
 
@@ -239,8 +239,8 @@ contract MasterChef is Ownable {
     }
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
-    function updateEmissionRate(uint256 _eggPerBlock) public onlyOwner {
+    function updateEmissionRate(uint256 _benderPerBlock) public onlyOwner {
         massUpdatePools();
-        eggPerBlock = _eggPerBlock;
+        benderPerBlock = _benderPerBlock;
     }
 }
